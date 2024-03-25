@@ -3,6 +3,14 @@ name: development-worklow
 on:
   workflow_dispatch:
 
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - 'release/starbuck-v*'
+
 jobs:
 
   build:
