@@ -9,13 +9,13 @@ on:
       - synchronize
       - reopened
     branches:
-      - 'kirkstone'
+      - 'release/starbuck-v*'
 
 jobs:
 
   build:
     runs-on: ubuntu-latest
-    environment: development
+    environment: production
 
     steps:
       - name: Checkout code
