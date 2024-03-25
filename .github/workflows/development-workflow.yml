@@ -9,7 +9,7 @@ on:
       - synchronize
       - reopened
     branches:
-      - 'release/starbuck*
+      - 'release/starbuck-v*'
 
 jobs:
 
