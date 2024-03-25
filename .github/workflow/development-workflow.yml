@@ -1,0 +1,19 @@
+name: development-worklow
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    environment: development
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Print variables
+        run: |
+          echo "CLAIM_CERTIFICATE: $CLAIM_CERTIFICATE"
+  
