@@ -15,5 +15,5 @@ jobs:
 
       - name: Print variables
         run: |
-          echo "CLAIM_CERTIFICATE: $CLAIM_CERTIFICATE"
+          echo "CLAIM_CERTIFICATE: ${{ vars.CLAIM_CERTIFICATE }}"
   
