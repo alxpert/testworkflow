@@ -2,10 +2,6 @@ name: development-worklow
 
 on:
   push:
-    types:
-      - opened
-      - synchronize
-      - reopened
     branches:
       - 'release/starbuck-v*'
 
