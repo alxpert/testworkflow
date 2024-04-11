@@ -69,7 +69,6 @@ jobs:
 
       - name: Build CI
         uses: ./.github/workflows/build.yml
-        secrets: inherit
 
       - name: "Generate release changelog"
         uses: heinrichreimer/action-github-changelog-generator@v2.3
