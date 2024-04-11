@@ -67,6 +67,10 @@ jobs:
         env:
           TAG: ${{ env.TAG }}
 
+      - name: Build CI
+        uses: .github/workflows/build.yml
+        secrets: inherit
+
       - name: "Generate release changelog"
         uses: heinrichreimer/action-github-changelog-generator@v2.3
         id: changelog
@@ -87,8 +91,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Trigger tag workflow
-        run: |
-          gh workflow run flo-ac.yml --ref ${{ env.TAG }}
-        env:
-          GH_TOKEN: ${{ github.token }}
