@@ -12,18 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Configure SSH keys
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: |
-            ${{ secrets.SSH_FW_LIBAE_RTU }}
-            ${{ secrets.SSH_FW_LIBAE_LEGACY }}
-            ${{ secrets.SSH_FW_LIBAE_DEVICES }}
-            ${{ secrets.SSH_FW_FRAMEWORK_SMARTCORE }}
-            ${{ secrets.SSH_KEY_GH_EMS_PROTOCOL }}
-            ${{ secrets.SSH_FW_SE050_MW }}
-            ${{ secrets.SSH_FW_OCPP_ML_TEXT_PARSER }}
-            ${{ secrets.SSH_FW_FLO_ACDC }}
 
       - name: Checkout code and submodule
         uses: actions/checkout@v4
