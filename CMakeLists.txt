@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(flo-ac VERSION 0.7.0)
+project(flo-ac VERSION 0.7.1)
 include(CTest)
 include(CMakeDependentOption)
 set(CMAKE_C_STANDARD 99)
