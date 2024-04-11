@@ -1,0 +1,93 @@
+name: "Prepare, tag and generate a GitHub release for the code"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'release/**'
+
+jobs:
+  generate_tag_release:
+    name: Generate tag and release for new version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code and submodule
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # FIXME: Need to use a PAT here to be able to trigger other workflow
+          # See https://docs.github.com/en/actions/using-workflows/triggering-a-workflow#triggering-a-workflow-from-a-workflow
+          # PAT needs to have the `repo` scope.
+          token: ${{ secrets.GH_RELEASE_TOKEN }}
+
+      - name: Retrieve previous tag (when triggered manually)
+        id: previous_tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          previous_tag=$(git tag --list "floac-v*" --sort=-version:refname | head -1)
+          echo "Using previous tag ${previous_tag}"
+          # Strip "floac-v" prefix
+          version=${previous_tag:7}
+          echo "Previous version: ${version}"
+          echo "${version}" > $GITHUB_WORKSPACE/VERSION
+
+          echo "previous_tag=${previous_tag}" >> $GITHUB_OUTPUT
+          echo "previous_version=${previous_version}" >> $GITHUB_OUTPUT
+
+      - name: Retrieve current version
+        id: retrieve_version
+        run: |
+          version=$(grep -oP 'VERSION \K[0-9]+\.[0-9]+\.[0-9]+' CMakeLists.txt)
+          echo "Current version: ${version}"
+          echo "current_version=${version}" >> $GITHUB_ENV
+          tag="floac-v${version}"
+          echo "version=${version}" >>"$GITHUB_OUTPUT"
+          echo "TAG=${tag}" >> "$GITHUB_ENV"
+
+      - name: Configure git
+        run: |
+          git config --global --add safe.directory "*"
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update latest tag
+        id: updateLatest
+        run: | 
+          highest_version_tag=$(git tag --list "v*" --sort=-version:refname | head -1)
+          highest_version_commit=$(git rev-list -n 1 ${highest_version_tag})
+          current_commit=$(git rev-list -n 1 ${TAG})
+
+          if [ "$current_commit" == "$highest_version_commit" ]; then
+            git tag -f floac-latest
+            git push -f origin floac-latest
+            echo "floac-latest tag moved from ${highest_version_tag}to ${TAG}"
+          else
+            echo "no floac-latest tag update required"
+          fi
+        env:
+          TAG: ${{ env.TAG }}
+
+      - name: "✏️ Generate release changelog"
+        uses: heinrichreimer/action-github-changelog-generator@v2.3
+        id: changelog
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          sinceTag: ${{ steps.previous_tag.outputs.previous_tag }}
+          tag: ${{ env.TAG }}
+          repo: ${{ github.repository }}
+          output: release.md
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: "release.md"
+          tag_name: ${{ env.TAG }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger tag workflow
+        run: |
+          gh workflow run flo-ac.yml --ref ${{ env.TAG }}
+        env:
+          GH_TOKEN: ${{ github.token }}
