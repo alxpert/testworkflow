@@ -12,18 +12,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Configure SSH keys
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.SSH_FW_LIBAE_RTU }}
+            ${{ secrets.SSH_FW_LIBAE_LEGACY }}
+            ${{ secrets.SSH_FW_LIBAE_DEVICES }}
+            ${{ secrets.SSH_FW_FRAMEWORK_SMARTCORE }}
+            ${{ secrets.SSH_KEY_GH_EMS_PROTOCOL }}
+            ${{ secrets.SSH_FW_SE050_MW }}
+            ${{ secrets.SSH_FW_OCPP_ML_TEXT_PARSER }}
+            ${{ secrets.SSH_FW_FLO_ACDC }}
+
       - name: Checkout code and submodule
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # FIXME: Need to use a PAT here to be able to trigger other workflow
-          # See https://docs.github.com/en/actions/using-workflows/triggering-a-workflow#triggering-a-workflow-from-a-workflow
-          # PAT needs to have the `repo` scope.
-          token: ${{ secrets.GH_RELEASE_TOKEN }}
+          submodules: recursive
 
       - name: Retrieve previous tag (when triggered manually)
         id: previous_tag
-        if: github.event_name == 'workflow_dispatch'
         run: |
           previous_tag=$(git tag --list "floac-v*" --sort=-version:refname | head -1)
           echo "Using previous tag ${previous_tag}"
@@ -35,6 +44,12 @@ jobs:
           echo "previous_tag=${previous_tag}" >> $GITHUB_OUTPUT
           echo "previous_version=${previous_version}" >> $GITHUB_OUTPUT
 
+      - name: Configure git
+        run: |
+          git config --global --add safe.directory "*"
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Retrieve current version
         id: retrieve_version
         run: |
@@ -44,39 +59,37 @@ jobs:
           tag="floac-v${version}"
           echo "version=${version}" >>"$GITHUB_OUTPUT"
           echo "TAG=${tag}" >> "$GITHUB_ENV"
-
-      - name: Configure git
-        run: |
-          git config --global --add safe.directory "*"
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${tag}" -m "Release floAC ${tag}"
+          git push origin "${tag}"
+          echo "github commit -> ${GITHUB_SHA}"
 
       - name: Update latest tag
         id: updateLatest
         run: | 
-          highest_version_tag=$(git tag --list "v*" --sort=-version:refname | head -1)
+          highest_version_tag=$(git tag --list "floac-v*" --sort=-version:refname | head -1)
           highest_version_commit=$(git rev-list -n 1 ${highest_version_tag})
-          current_commit=$(git rev-list -n 1 ${TAG})
 
-          if [ "$current_commit" == "$highest_version_commit" ]; then
+          if [ "${GITHUB_SHA}" == "$highest_version_commit" ]; then
             git tag -f floac-latest
             git push -f origin floac-latest
-            echo "floac-latest tag moved from ${highest_version_tag}to ${TAG}"
+            echo "floac-latest tag moved from ${highest_version_tag} to ${TAG}"
           else
             echo "no floac-latest tag update required"
           fi
         env:
           TAG: ${{ env.TAG }}
 
-      - name: "✏️ Generate release changelog"
+      - name: "Generate release changelog"
         uses: heinrichreimer/action-github-changelog-generator@v2.3
         id: changelog
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           sinceTag: ${{ steps.previous_tag.outputs.previous_tag }}
-          tag: ${{ env.TAG }}
+          excludeTags: "floac-latest"
           repo: ${{ github.repository }}
           output: release.md
+        env:
+          TAG: ${{ env.TAG }}
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
